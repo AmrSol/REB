@@ -488,6 +488,8 @@ with os.scandir('Data_All') as files:  # this gives me pointers
 od_files = sorted(od_files, key=lambda x: (x.is_dir(), x.name))
 l_files  = sorted(l_files, key=lambda x: (x.is_dir(), x.name))
 
+# Test commit
+
 print('\nThese are the ODs:')
 for file in od_files:
     print(file.name)
