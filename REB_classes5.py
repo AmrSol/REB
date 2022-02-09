@@ -3,6 +3,7 @@
 import os as os
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import pandas as pd
 import numpy as np
 import time
@@ -16,7 +17,7 @@ def drop_all(df):
             'Leg 4 Operating Airline'], axis='columns', inplace=True)
 
 to_from_SIN = pd.read_excel(
-    r'C:\Users\amrsa\REB\Data\SIN-SYD\to_from_SIN_6.xlsx', sheet_name=1)
+    r'Data/SIN-SYD/to_from_SIN_6.xlsx', sheet_name=1)
 
 # Import support documents
 to_from_SIN_all = pd.read_csv('to_from_SIN_all.csv')
@@ -197,7 +198,7 @@ def S_trunk(df, name):
 
 def A(gy):
     def ancillary(row):
-        a = pd.read_excel(r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=1)
+        a = pd.read_excel(r'Data/Assumption.xlsx', sheet_name=1)
         a.rename({'Code': 'Leg Operating Airline'}, axis=1, inplace=True)
         a.drop(['Assumption', 'Revenue', 'Airline'], axis=1, inplace=True)
         if row['Leg Operating Airline'] == 'D7':
@@ -227,7 +228,7 @@ def A(gy):
 
 def t(gy):
     tax = pd.read_excel(
-        r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=2)
+        r'Data/Assumption.xlsx', sheet_name=2)
     tax.rename({'Origin': 'Leg Origin Airport',
                'Destination': 'Leg Destination Airport', 'USD': 'Tax($)'}, axis=1, inplace=True)
     tax.drop(['SGD'], axis=1, inplace=True)
@@ -294,7 +295,7 @@ def SBE(gy, name):
         sbe['Specific Aircraft Code'] = sbe['Specific Aircraft Code'].astype(str)
 
         e = pd.read_excel(
-            r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=5)
+            r'Data/Assumption.xlsx', sheet_name=5)
         e = e[['Specific Aircraft Code', '# of e-seats']]
         e['Specific Aircraft Code'] = e['Specific Aircraft Code'].astype(str)
 
@@ -324,7 +325,7 @@ def SBE(gy, name):
             str)
 
         e = pd.read_excel(
-            r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=5)
+            r'Data/Assumption.xlsx', sheet_name=5)
         e = e[['Specific Aircraft Code', '# of e-seats']]
         e['Specific Aircraft Code'] = e['Specific Aircraft Code'].astype(str)
 
@@ -345,7 +346,7 @@ def SBE(gy, name):
         return pd.merge(gy, sbe_sum, on=['Leg Origin Airport', 'Leg Destination Airport', 'Leg Operating Airline', 'Month'])
 
 def ancillary(row):
-    a = pd.read_excel(r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=1)
+    a = pd.read_excel(r'Data/Assumption.xlsx', sheet_name=1)
     a.rename({'Code': 'Leg Operating Airline'}, axis=1, inplace=True)
     a.drop(['Assumption', 'Revenue', 'Airline'], axis=1, inplace=True)
     if row['Leg Operating Airline'] == 'D7':
@@ -487,6 +488,8 @@ with os.scandir('Data_All') as files:  # this gives me pointers
 
 od_files = sorted(od_files, key=lambda x: (x.is_dir(), x.name))
 l_files  = sorted(l_files, key=lambda x: (x.is_dir(), x.name))
+
+# Test commit
 
 print('\nThese are the ODs:')
 for file in od_files:
@@ -764,8 +767,10 @@ fs = 7 # fonstsize
 dss = 40.8 # distances location
 cpp = 42 # city-pair location
 fscp = 9 # font-size city-pair
-l = '#3273a8' # LHLC bar color
-f = '#878787' # FSNC bar color
+l = '#111111'#3273a8' # LHLC bar color blue
+f = '#989898' # 878787 FSNC bar color
+yl = '#656565'
+g = '#EBECF0' # color for con. revenue
 lwavgs = 1
 
 
@@ -782,7 +787,7 @@ ax.set_ylim([0,ylim])
 ax.set_xlim([0-w, 34+w]) # 33
 ax.bar_label(reb, padding=3, fmt='%.1f')
 
-yieldplot = ax2.plot(x, y2, color='k', label= 'Yield/Passenger')
+yieldplot = ax2.plot(x, y2, color= yl, label= 'Yield/Passenger')
 ax2.set_ylabel('Yield / Passenger (US$)')
 ax2.set_ylim([0,1000])
 
@@ -836,7 +841,14 @@ ax.plot([32.5,34+w],[avgs[10],avgs[10]], color='k',linewidth=lwavgs, linestyle='
 # added these two lines
 lns = yieldplot+mean
 labs = [l.get_label() for l in lns]
-ax.legend(lns, labs, loc='lower center', ncol=2,bbox_to_anchor=(0, -.17, 1., .102))#,mode='expand'
+legend_lines = ax.legend(lns, labs, loc='lower center', ncol=2,bbox_to_anchor=(0, -.17, 1., .102))#,mode='expand'
+ax.add_artist(legend_lines)
+
+LHLCC_patch = mpatches.Patch(color=l, label='LHLCC')
+FSNC_patch = mpatches.Patch(color=f, label='FSNC')
+
+ax.legend(handles=[LHLCC_patch, FSNC_patch], loc='lower right',ncol=2, bbox_to_anchor=(0, -.17, 0.9, .102))
+
 
 plt.show()
 fig.savefig('p_Big_REB.eps', format='eps')
@@ -856,7 +868,7 @@ airline_types = list(yield_type['Airline Type'])
 y = list(yield_type['Y/P/B'])
 x = np.arange(len(yield_type['Airline Type']))
 
-yield_plot = axy.bar(x, y, w2)
+yield_plot = axy.bar(x, y, w2, color=[f,f])
 
 axy.set_title('YIELD')
 axy.set_ylabel('Yield/ passenger/ block hour (US$)')
@@ -883,7 +895,7 @@ premium_pass = results_df.groupby(['Airline Type','Cabin Class']).sum().reset_in
 y = [13.9,3.9]
 x = [0,1]
 
-premium_plot = axp.bar(x,y,w2)
+premium_plot = axp.bar(x,y,w2, color=[f,f])
 
 axp.set_xticks(x)
 axp.set_xticklabels(airline_types)
@@ -930,8 +942,8 @@ y_con = [F_P_con_per, F_R_con_per, L_P_con_per, L_R_con_per]
 x = [0,1,2,3]
 
 
-cr_plot_dir = axc.bar(x, y_dir, w2)
-cr_plot_con = axc.bar(x, y_con, w2, bottom=y_dir)
+cr_plot_dir = axc.bar(x, y_dir, w2, color=[f,f,f,f])
+cr_plot_con = axc.bar(x, y_con, w2, bottom=y_dir, color=[g,g,g,g])
 
 axc.set_xticks(x)
 axc.set_xticklabels(labels)
@@ -956,7 +968,7 @@ axc.annotate('CR',xy=(3,97),horizontalalignment='center', fontsize=10)
 y = np.array(an['A/B'])
 x = [0,1]
 
-an_plot = axa.bar(x,y,w2)
+an_plot = axa.bar(x,y,w2, color=[f,f])
 axa.set_title('ANCILLARIES')
 
 axa.set_ylabel('Ancillary rev./ pass./ block hour (US$)')
@@ -983,7 +995,7 @@ lf = results_gy.groupby(['Airline Type']).mean().reset_index()[['Airline Type','
 y = np.array(lf['Load Factor'])*100
 x = [0,1]
 
-lf_plot = axl.bar(x,y,w2)
+lf_plot = axl.bar(x,y,w2, color=[f,f])
 
 axl.set_ylabel('Yield/ passenger/ block hour (US$)')
 axl.set_xticks(x)
@@ -1008,7 +1020,7 @@ sd = results_REB.groupby(['Airline Type']).mean().reset_index()[['Airline Type',
 y = np.array(sd['s/e'])
 x = [0,1]
 
-sd_plot = axs.bar(x,y,w2)
+sd_plot = axs.bar(x,y,w2, color=[f,f])
 
 axs.set_xticks(x)
 axs.set_xticklabels(airline_types)
@@ -1036,7 +1048,7 @@ airline_types = list(yield_type['Airline Type'])
 y = list(REB_type['REB_wa'])
 x = np.arange(len(yield_type['Airline Type']))
 
-REB_plot = ax.bar(x, y, 0.6)
+REB_plot = ax.bar(x, y, 0.6, color=[f,f])
 
 ax.set_title('REB')
 ax.set_ylabel('REB - Revenue/ e-seat/ block hour (US$)')
