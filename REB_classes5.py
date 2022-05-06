@@ -1,7 +1,7 @@
 # %%  REB classes
 # Imports
 import os as os
-import seaborn as sns
+# import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pandas as pd
