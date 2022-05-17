@@ -787,7 +787,7 @@ ax.set_ylim([0,ylim])
 ax.set_xlim([0-w, 34+w]) # 33
 ax.bar_label(reb, padding=3, fmt='%.1f')
 
-yieldplot = ax2.plot(x, y2, color= yl, label= 'Yield/Passenger')
+yieldplot = ax2.plot(x, y2, '.', color= yl, label= 'Yield/Passenger') # changing this to a scatter plot
 ax2.set_ylabel('Yield / Passenger (US$)')
 ax2.set_ylim([0,1000])
 
@@ -838,7 +838,7 @@ ax.plot([27.5,29.5],[avgs[8],avgs[8]], color='k',linewidth=lwavgs, linestyle='da
 ax.plot([29.5,32.5],[avgs[9],avgs[9]], color='k',linewidth=lwavgs, linestyle='dashed')
 ax.plot([32.5,34+w],[avgs[10],avgs[10]], color='k',linewidth=lwavgs, linestyle='dashed')
 
-# added these two lines
+# added these two lines for the legend
 lns = yieldplot+mean
 labs = [l.get_label() for l in lns]
 legend_lines = ax.legend(lns, labs, loc='lower center', ncol=2,bbox_to_anchor=(0, -.17, 1., .102))#,mode='expand'
@@ -849,10 +849,30 @@ FSNC_patch = mpatches.Patch(color=f, label='FSNC')
 
 ax.legend(handles=[LHLCC_patch, FSNC_patch], loc='lower right',ncol=2, bbox_to_anchor=(0, -.17, 0.9, .102))
 
+# # airline name legend
+# airline_names_unique = list(dict.fromkeys(airline_names))
+# names_expanded = ['Qantas', 
+#     'Scoot', 
+#     'Singapore Airlines', 
+#     'Malindo Airways', 
+#     'Malaysia Airlines', 
+#     'AirAsia X', 
+#     'Air China', 
+#     'All Nippon Airways', 
+#     'Japan Airlines',
+#     'Emirates',
+#     'Jetstar',
+#     'British Airways',
+#     'Saudi Arabian Airlines' ]
+
+# airline_names_legend = '\n'.join(f'{n} - {name}' for n,name in zip(airline_names_unique,names_expanded))
+# t = ax.text(0.5,-0.5,airline_names_legend,transform=ax.figure.transFigure)
+# print(airline_names_legend)
 
 plt.show()
 fig.savefig('p_Big_REB.eps', format='eps')
 fig.savefig('p_Big_REB.png')
+
 
 #%%
 fig, (axy, axp, axc, axa, axl, axs) = plt.subplots(nrows=1, ncols=6, figsize=(15,5), gridspec_kw={'width_ratios': [1,1,2,1,1,1]})
