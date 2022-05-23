@@ -197,26 +197,28 @@ def S_trunk(df, name):
 
 
 def A(gy):
-    def ancillary(row):
-        a = pd.read_excel(r'Data/Assumption.xlsx', sheet_name=1)
-        a.rename({'Code': 'Leg Operating Airline'}, axis=1, inplace=True)
-        a.drop(['Assumption', 'Revenue', 'Airline'], axis=1, inplace=True)
-        if row['Leg Operating Airline'] == 'D7':
-            return a.loc[a[a['Leg Operating Airline']=='D7'].index.values.astype(int)[0],'ARPP($)']
-        elif row['Leg Operating Airline'] == 'TR':
-            return a.loc[a[a['Leg Operating Airline']=='TR'].index.values.astype(int)[0],'ARPP($)']
-        elif row['Cabin Class'] == 'Discount Coach':
-            airline = row['Leg Operating Airline']
-            if airline in 'SQ QF TR EK BA TR SV MH OD D7 CA NH JL JQ'.split():
-                return a.loc[a[a['Leg Operating Airline']==airline].index.values.astype(int)[0],'ARPP($)']
-            else:
-                return 0
-        else:
-            return 0       
+    # def ancillary(row):
+    #     a = pd.read_excel(r'Data/Assumption.xlsx', sheet_name=1)
+    #     a.rename({'Code': 'Leg Operating Airline'}, axis=1, inplace=True)
+    #     a.drop(['Assumption', 'Revenue', 'Airline'], axis=1, inplace=True)
+    #     if row['Leg Operating Airline'] == 'D7':
+    #         return a.loc[a[a['Leg Operating Airline']=='D7'].index.values.astype(int)[0],'ARPP($)']
+    #     elif row['Leg Operating Airline'] == 'TR':
+    #         return a.loc[a[a['Leg Operating Airline']=='TR'].index.values.astype(int)[0],'ARPP($)']
+    #     elif row['Cabin Class'] == 'Discount Coach':
+    #         airline = row['Leg Operating Airline']
+    #         if airline in 'SQ QF TR EK BA TR SV MH OD D7 CA NH JL JQ'.split():
+    #             return a.loc[a[a['Leg Operating Airline']==airline].index.values.astype(int)[0],'ARPP($)']
+    #         else:
+    #             return 0
+    #     else:
+    #         return 0       
 
-    gy['ARPP($)'] = gy.apply(lambda row: ancillary(row), axis=1)
+    # gy['ARPP($)'] = gy.apply(lambda row: ancillary(row), axis=1)
+    a = pd.read_csv('Data/Ancillary.csv')
 
-    return gy
+
+    return pd.merge(gy, a, on='Leg Operating Airline', how ='left')
 
 # def A(gy):
 #     a = pd.read_excel(r'C:\Users\amrsa\OneDrive - University of Surrey\PhD\ATM\Frankie\Publication\Code\Data\Assumption.xlsx', sheet_name=1)
