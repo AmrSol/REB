@@ -22,7 +22,7 @@ This command installs `milap` as a package on your local system.
 
 `revenue` contains the classes relevant to REB calculations.
 It starts off with the `RebDataContainer` object that is initialised with either `DataFrameLoader` or `DataFrameFolderLoader` objects.
-Then `RebCalculator` is calculates REB and saves all relevant information in the relevant object attributes.
+Then `RebCalculator` calculates REB and saves all relevant information in the relevant object attributes.
 Finally, `RebPlotter` plots the figures needed to visualise REB performance in the market.
 
 
