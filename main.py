@@ -53,6 +53,7 @@ if __name__ == "__main__":
     print()
     print("Amr is here.")
     print("Will this push to origin?")
+    print("Sunny's first push to origin with branch protection.")
 
 # Sunny was here
 # Sunny is here again and ready to push to origin.
