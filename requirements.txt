@@ -20,3 +20,4 @@ seaborn==0.13.0
 six==1.16.0
 threadpoolctl==3.2.0
 tqdm==4.66.1
+-e .
