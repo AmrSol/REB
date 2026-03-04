@@ -133,3 +133,50 @@ DF_COLUMN_DICT = {
 }
 
 DICT_DISC_POINTS = {}
+
+LIST_OF_LHLCCS = [
+    "TR",
+    "D7",
+    "JQ",
+    "0B",
+    "3O",
+    "8Q",
+    "AD",
+    "BF",
+    "D8",
+    "DI",
+    "DP",
+    "DY",
+    "EW",
+    "FR",
+    "HG",
+    "HV",
+    "J9",
+    "JD",
+    "LS",
+    "P7",
+    "PC",
+    "PQ",
+    "QS",
+    # "SE", # XL Airways France Low cost charter
+    "SM",
+    "TB",
+    "TO",
+    "TR",
+    # "TS", # Air Transat?
+    "U2",
+    "V7",
+    "VE",
+    "VY",
+    "W6",
+    "W9",
+    "WS",
+    "XQ",
+    "XY",
+]
+# Plot folder names
+PLOT_NA_CITY_PAIR = "Reports/reb/na_city_pair"
+PLOT_BIG6 = "Reports/reb/na_big6"
+PLOT_BIG6_ACCUM = "Reports/reb/na_big6_accum"
+PLOT_REB_AVG = "Reports/reb/na_reb_average"
+PLOT_REB_AVG_ACCUM = "Reports/reb/na_reb_average_accum"

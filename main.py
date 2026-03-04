@@ -40,6 +40,7 @@ def template():
     df, gy, re, reb = sea_reb_calculator.calculate_reb()
     reb_plotter = RebPlotter(df, gy, re, reb, reb_data)
     reb_plotter.plot_city_pairs()
+    reb_plotter.plot_big_6()
 
     en = time.time()
     print(f"Time taken: {en - st}")

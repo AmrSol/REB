@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import time
+import os
 
 from milap.constants import (
     ANCILLARY_ASSUMPTIONS_FILE,
@@ -18,6 +19,7 @@ from milap.constants import (
     OAG_TOFROM_FOLDER,
     SEA_AIRPORT_AIRLINE_PAIRS,
     TAX_ASSUMPTIONS_FILE,
+    LIST_OF_LHLCCS,
 )
 from milap.csvloader import (
     AssumptionsLoader,
@@ -951,8 +953,463 @@ class RebPlotter:
         # fig.savefig('p_REB_Avg.eps', format='eps')
         # fig.savefig('p_REB_Avg.png')
 
-    def plot_big_6(self):
-        pass
+    def plot_big_6(
+        self,
+        figure_name_addons: str = "",
+        savefolder: str = None,
+    ):
+        """The big 6 plot showing the yield, premium passengers, connecting revenue,
+        and connecting passengers for each airline type.
+
+        Args:
+            figure_name_addons (str, optional): _description_. Defaults to "".
+            savefolder (str, optional): _description_. Defaults to None.
+        """
+        if savefolder is not None:
+            if not os.path.exists(savefolder):
+                os.makedirs(savefolder)
+
+        # We need to label the airline models #TODO: take it out of the function
+        conditions = [self.df["Leg Operating Airline"].isin(LIST_OF_LHLCCS)]
+        choices = ["LHLCC"]
+        self.df["Airline Model"] = np.select(conditions, choices, default="FSNC")
+        # We need to label the airline models #TODO: take it out of the function
+        conditions = [self.gy["Leg Operating Airline"].isin(LIST_OF_LHLCCS)]
+        choices = ["LHLCC"]
+        self.gy["Airline Model"] = np.select(conditions, choices, default="FSNC")
+
+        self.axy_data = {"year": [], "x": [], "y": [], "airline_model": []}
+        self.axp_data = {"year": [], "x": [], "y": [], "airline_model": []}
+        self.axa_data = {"year": [], "x": [], "y": [], "airline_model": []}
+        self.axl_data = {"year": [], "x": [], "y": [], "airline_model": []}
+        self.axs_data = {"year": [], "x": [], "y": [], "airline_model": []}
+
+        self.axc_data = {
+            "year": [],
+            "x": [],
+            "y_f_p_dir": [],
+            "y_f_p_con": [],
+            "y_f_r_dir": [],
+            "y_f_r_con": [],
+            "y_l_p_dir": [],
+            "y_l_p_con": [],
+            "y_l_r_dir": [],
+            "y_l_r_con": [],
+        }
+
+        def append_plot_data(dictionary):
+            dictionary["year"].append([year, year])
+            dictionary["x"].append(x)
+            dictionary["y"].append(y)
+            dictionary["airline_model"].append(airline_model)
+
+        for year in self.reb_post_plot["Year"].unique():
+            self.plt_reb = self.reb_post_plot[self.reb_post_plot["Year"] == year]
+            year = int(year)
+
+            import matplotlib.ticker as mtick
+
+            fig, (axy, axp, axc, axa, axl, axs) = plt.subplots(
+                nrows=1,
+                ncols=6,
+                figsize=(15, 5),
+                gridspec_kw={"width_ratios": [1, 1, 2, 1, 1, 1]},
+            )
+
+            # parameters #TODO: to be inserted into a dictionary attribute of the class
+            w2 = 0.7  # bar width
+            L = "#111111"  # 3273a8' # LHLC bar color blue
+            f = "#989898"
+            g = "#EBECF0"  # color for connecting revenue
+
+            # Yield ##################################################
+            # yield_type = (
+            #     self.plt_reb.groupby("Airline Model")
+            #     .mean()
+            #     .reset_index()[["Airline Model", "Yield/P/B"]]
+            # )
+            yield_type = pdtools.calculate_weighted_average(
+                self.plt_reb,
+                value_column="Yield/P/B",
+                weight_column="Passengers",
+                groupby_columns=["Airline Model"],
+            )
+
+            airline_model = list(yield_type["Airline Model"])
+            y = list(yield_type["Yield/P/B_wavg"])
+            # y = [60, 20] # for testing drawing the arrow
+            x = np.arange(len(yield_type["Airline Model"]))
+
+            yield_plot = axy.bar(x, y, w2, color=[f, f])
+
+            axy.set_title("YIELD")
+            axy.set_ylabel("Yield/ passenger/ block hour (US$)")
+            axy.set_xticks(x)
+            axy.set_xticklabels(airline_model)
+            ylim = [0,100]
+            axy.set_ylim(ylim)
+            axy.set_xlim([0 - w2, 1 + w2])
+            axy.bar_label(yield_plot, padding=3, fmt="%.1f")
+
+            # Arrow
+            self.draw_u_turn_arrow(axy, y, ylim)
+
+            append_plot_data(self.axy_data)
+
+            # Premium Pass #######################################
+            axp.set_title("PREMIUM PASS.")
+            axp.set_ylabel("Premium passengers (%)")
+            axp.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+            classes = self.df[self.df["Year"] == year]
+            classes = (
+                classes.groupby(["Airline Model", "Cabin Class"])
+                .sum(numeric_only=True)
+                .reset_index()[["Airline Model", "Cabin Class", "Passengers"]]
+            )
+            classes_total = (
+                classes.groupby("Airline Model").sum(numeric_only=True).reset_index()
+            )
+            # remove rows with discount economy
+            premium = classes[classes["Cabin Class"] != "Discount Economy"]
+            premium_total = (
+                premium.groupby("Airline Model").sum(numeric_only=True).reset_index()
+            )
+            premium_total = premium_total.rename(
+                columns={"Passengers": "Premium Passengers"}
+            )
+            premium_percentage = pdtools.merge_df1_and_df2(
+                premium_total,
+                classes_total,
+                df1_columns=["Airline Model"],
+                df2_columns=["Airline Model"],
+                df1_merging_columns=["Total Passengers"],
+                df2_merging_columns=["Passengers"],
+                groupby=False,
+            )
+            premium_percentage["Premium Percentage"] = (
+                premium_percentage["Premium Passengers"]
+                / premium_percentage["Total Passengers"]
+                * 100
+            )
+
+            # calculated by hand
+            y = list(premium_percentage["Premium Percentage"])
+            x = [0, 1]
+
+            premium_plot = axp.bar(x, y, w2, color=[f, f])
+
+            axp.set_xticks(x)
+            axp.set_xticklabels(list(premium_percentage["Airline Model"]))
+            ylim = [0,30]
+            axp.set_ylim(ylim)
+            axp.set_xlim([0 - w2, 1 + w2])
+            axp.bar_label(premium_plot, padding=3, fmt="%.1f")
+
+            # Arrow
+            self.draw_u_turn_arrow(axp, y, ylim, percentage_point=True)
+            append_plot_data(self.axp_data)
+
+            #  Connecting Revenue #######################################
+            axc.set_title("CONNECTING REVENUE")
+            axc.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+            cr = self.df[self.df["Year"] == year]
+            cr = (
+                cr.groupby(["Airline Model", "Leg Type"])
+                .sum(numeric_only=True)
+                .reset_index()[
+                    ["Airline Model", "Leg Type", "Passengers", "R_dir", "R_con"]
+                ]
+            )
+
+            F_R_dir = cr.loc[1, "R_dir"]
+            F_R_con = cr.loc[0, "R_con"]
+            F_P_dir = cr.loc[1, "Passengers"]
+            F_P_con = cr.loc[0, "Passengers"]
+
+            L_R_dir = cr.loc[3, "R_dir"]
+            L_R_con = cr.loc[2, "R_con"]
+            L_P_dir = cr.loc[3, "Passengers"]
+            L_P_con = cr.loc[2, "Passengers"]
+
+            F_P_dir_per = F_P_dir / (F_P_dir + F_P_con) * 100
+            F_P_con_per = 100 - F_P_dir_per
+            F_R_dir_per = F_R_dir / (F_R_dir + F_R_con) * 100
+            F_R_con_per = 100 - F_R_dir_per
+
+            L_P_dir_per = L_P_dir / (L_P_dir + L_P_con) * 100
+            L_P_con_per = 100 - L_P_dir_per
+            L_R_dir_per = L_R_dir / (L_R_dir + L_R_con) * 100
+            L_R_con_per = 100 - L_R_dir_per
+
+            # calculated by via index... might be a problem?
+            labels = "FSNC FSNC LHLCC LHLCC".split()
+            y_dir = [F_P_dir_per, F_R_dir_per, L_P_dir_per, L_R_dir_per]
+            y_con = [F_P_con_per, F_R_con_per, L_P_con_per, L_R_con_per]
+            x = [0, 1, 2, 3]
+
+            cr_plot_dir = axc.bar(x, y_dir, w2, color=[f, f, f, f])
+            cr_plot_con = axc.bar(x, y_con, w2, bottom=y_dir, color=[g, g, g, g])
+
+            axc.set_xticks(x)
+            axc.set_xticklabels(labels)
+            axc.set_ylim([0, 100])
+            axc.set_xlim([0 - w2, 3 + w2])
+            axc.bar_label(cr_plot_dir, padding=-12, fmt="%.1f")
+
+            self.axc_data["year"].append(year)
+            self.axc_data["x"].append(x)
+            self.axc_data["y_f_p_dir"].append(F_P_dir_per)
+            self.axc_data["y_f_p_con"].append(F_P_con_per)
+            self.axc_data["y_f_r_dir"].append(F_R_dir_per)
+            self.axc_data["y_f_r_con"].append(F_R_con_per)
+            self.axc_data["y_l_p_dir"].append(L_P_dir_per)
+            self.axc_data["y_l_p_con"].append(L_P_con_per)
+            self.axc_data["y_l_r_dir"].append(L_R_dir_per)
+            self.axc_data["y_l_r_con"].append(L_R_con_per)
+
+            # plot dotted diagonal lines
+            axc.plot(
+                [0 + w2 / 2, 1 - w2 / 2],
+                [F_P_dir_per, F_R_dir_per],
+                color="k",
+                linestyle="--",
+                linewidth=0.7,
+            )
+
+            axc.plot(
+                [2 + w2 / 2, 3 - w2 / 2],
+                [L_P_dir_per, L_R_dir_per],
+                color="k",
+                linestyle="--",
+                linewidth=0.7,
+            )
+
+            fs = 9
+            axc.annotate(
+                "Direct Passengers",
+                xy=(0, F_P_dir_per / 2 - 23 / 2),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+            axc.annotate(
+                "Direct Revenue",
+                xy=(1, F_R_dir_per / 2 - 23 / 2),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+            axc.annotate(
+                "Direct Passengers",
+                xy=(2, L_P_dir_per / 2 - 23 / 2),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+            axc.annotate(
+                "Direct Revenue",
+                xy=(3, L_R_dir_per / 2 - 23 / 2),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+
+            axc.annotate(
+                "Conn.\nPass.",
+                xy=(0, F_P_dir_per + 5),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+            axc.annotate(
+                "Conn.\nRev.",
+                xy=(1, F_R_dir_per + 5),
+                horizontalalignment="center",
+                fontsize=fs,
+                rotation=90,
+            )
+            # axc.annotate(
+            #     "(CR)", xy=(1.2, 75), horizontalalignment="center", fontsize=10, rotation=90
+            # )
+            axc.annotate(
+                "Conn.\nPass.",
+                xy=(2, L_P_dir_per + 5),
+                horizontalalignment="center",
+                rotation=90,
+                fontsize=fs,
+            )
+            axc.annotate(
+                "Conn.\nRev.",
+                xy=(3, L_R_dir_per + 5),
+                horizontalalignment="center",
+                rotation=90,
+                fontsize=fs,
+            )
+            # TODO: axc needs its own thing i think
+
+            # Ancillaries #######################################
+            self.gy["Ancillary Revenue"] = self.gy["ARPP (USD)"] * self.gy["Passengers"]
+            self.plt_reb = pdtools.merge_df1_and_df2(
+                self.plt_reb,
+                self.gy,
+                df1_columns=[
+                    "Leg Origin Airport",
+                    "Leg Destination Airport",
+                    "Leg Operating Airline",
+                    "Year",
+                ],
+                df2_columns=[
+                    "Leg Origin Airport",
+                    "Leg Destination Airport",
+                    "Leg Operating Airline",
+                    "Year",
+                ],
+                df1_merging_columns=["Ancillary Revenue"],
+                df2_merging_columns=["Ancillary Revenue"],
+                func="sum",
+            )
+            self.plt_reb["Ancillary Revenue/P/B"] = (
+                self.plt_reb["Ancillary Revenue"]
+                / self.plt_reb["Passengers"]
+                / self.plt_reb["B"]
+            )
+            ancillary = pdtools.calculate_weighted_average(
+                df=self.plt_reb,
+                value_column="Ancillary Revenue/P/B",
+                weight_column="Passengers",
+                groupby_columns=["Airline Model"],
+            )
+            y = np.array(ancillary["Ancillary Revenue/P/B_wavg"])
+            x = [0, 1]
+
+            an_plot = axa.bar(x, y, w2, color=[f, f])
+            axa.set_title("ANCILLARIES")
+
+            axa.set_ylabel("Ancillary rev./ pass./ block hour (US$)")
+            axa.set_xticks(x)
+            axa.set_xticklabels(list(ancillary["Airline Model"]))
+            ylim = [0,6]
+            axa.set_ylim(ylim)
+            axa.set_xlim([0 - w2, 1 + w2])
+            axa.bar_label(an_plot, padding=3, fmt="%.1f")
+
+            # Arrow
+            self.draw_u_turn_arrow(axa, y, ylim)
+
+            append_plot_data(self.axa_data)
+
+            # Load Factor #######################################
+            axl.set_title("LOAD FACTORS")
+            axl.set_ylabel("Load Factor (%)")
+            import matplotlib.ticker as mtick
+
+            axl.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+            # lf = (
+            #     self.gy.groupby(["Airline Model"])
+            #     .mean()
+            #     .reset_index()[["Airline Model", "Load Factor"]]
+            # )
+            gy = self.gy[self.gy["Year"] == year]
+            lf = pdtools.calculate_weighted_average(
+                df=gy,
+                value_column="Load Factor",
+                weight_column="Passengers",
+                groupby_columns=["Airline Model"],
+            )
+
+            # calculated by hand
+            y = np.array(lf["Load Factor_wavg"]) * 100
+            x = [0, 1]
+
+            lf_plot = axl.bar(x, y, w2, color=[f, f])
+
+            axl.set_ylabel("Load factor (%)")
+            axl.set_xticks(x)
+            axl.set_xticklabels(list(lf["Airline Model"]))
+            ylim = [50, 100]
+            axl.set_ylim(ylim)
+            axl.set_xlim([0 - w2, 1 + w2])
+            axl.bar_label(lf_plot, padding=3, fmt="%.1f")
+
+            # Arrow
+            self.draw_u_turn_arrow(axl, y, ylim, percentage_point=True)
+
+            append_plot_data(self.axl_data)
+
+            # Seat Density #######################################
+            axs.set_title("SEAT DENSITY")
+            axs.set_ylabel("Seats/ e-seat (%)")
+            axs.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+            # sd = (
+            #     self.plt_reb.groupby(["Airline Model"])
+            #     .mean()
+            #     .reset_index()[["Airline Model", "s/e"]]
+            # )
+
+            self.plt_reb = pdtools.merge_df1_and_df2(
+                self.plt_reb,
+                self.gy,
+                df1_columns=[
+                    "Leg Origin Airport",
+                    "Leg Destination Airport",
+                    "Leg Operating Airline",
+                    "Year",
+                ],
+                df2_columns=[
+                    "Leg Origin Airport",
+                    "Leg Destination Airport",
+                    "Leg Operating Airline",
+                    "Year",
+                ],
+                df1_merging_columns=["Seats (Total)"],
+                df2_merging_columns=["Seats (Total)"],
+                func="sum",
+            )
+
+            self.plt_reb["s/e"] = (
+                self.plt_reb["Seats (Total)"] / self.plt_reb["E_total"] * 100
+            )
+            sd = pdtools.calculate_weighted_average(
+                df=self.plt_reb,
+                value_column="s/e",
+                weight_column="Passengers",
+                groupby_columns=["Airline Model"],
+            )
+            # calculated by hand
+            y = np.array(sd["s/e_wavg"])
+            x = [0, 1]
+
+            sd_plot = axs.bar(x, y, w2, color=[f, f])
+
+            axs.set_xticks(x)
+            axs.set_xticklabels(list(sd["Airline Model"]))
+            ylim = [0, 100]
+            axs.set_ylim(ylim)
+            axs.set_xlim([0 - w2, 1 + w2])
+            axs.bar_label(sd_plot, padding=3, fmt="%.1f")
+
+            # Arrow
+            self.draw_u_turn_arrow(axs, y, ylim, percentage_point=True)
+
+            append_plot_data(self.axs_data)
+
+            fig.tight_layout()
+            # plt.show()
+            fig.savefig(
+                f"{savefolder}/{year}_{figure_name_addons}_reb_big6.png",
+                bbox_inches="tight",
+                dpi=250,
+            )
+            # fig.savefig(
+            #     f"{savefolder}/{year}_{figure_name_addons}_reb_big6.svg",
+            #     bbox_inches="tight",
+            # )
+
+            plt.close()
 
 
 if __name__ == "__main__":
