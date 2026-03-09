@@ -1,3 +1,5 @@
 
 /myenv
 /Old version
+/.venv
+/src/milap/__pycache__
